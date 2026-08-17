@@ -5,28 +5,46 @@
         <h1 class="text-center">User Information Form</h1>
 
         <form @submit.prevent="submitForm">
+          <!-- Username and Password -->
           <div class="row mb-3">
             <div class="col-12 col-md-6">
               <label for="username" class="form-label">Username</label>
+
               <input
                 type="text"
                 class="form-control"
                 id="username"
+                required
                 v-model="formData.username"
+                @blur="validateUsername"
               />
+
+              <div v-if="usernameError" class="text-danger">
+                {{ usernameError }}
+              </div>
             </div>
 
             <div class="col-12 col-md-6">
               <label for="password" class="form-label">Password</label>
+
               <input
                 type="password"
                 class="form-control"
                 id="password"
+                minlength="4"
+                maxlength="10"
+                required
                 v-model="formData.password"
+                @blur="validatePassword"
               />
+
+              <div v-if="passwordError" class="text-danger">
+                {{ passwordError }}
+              </div>
             </div>
           </div>
 
+          <!-- Australian Resident and Gender -->
           <div class="row mb-3">
             <div class="col-12 col-md-6">
               <div class="form-check">
@@ -34,8 +52,10 @@
                   type="checkbox"
                   class="form-check-input"
                   id="isAustralian"
+                  required
                   v-model="formData.isAustralian"
                 />
+
                 <label class="form-check-label" for="isAustralian">
                   Australian Resident?
                 </label>
@@ -44,11 +64,14 @@
 
             <div class="col-12 col-md-6">
               <label for="gender" class="form-label">Gender</label>
+
               <select
                 class="form-select"
                 id="gender"
+                required
                 v-model="formData.gender"
               >
+                <option value="" disabled>Select gender</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
                 <option value="other">Other</option>
@@ -56,18 +79,32 @@
             </div>
           </div>
 
+          <!-- Reason -->
           <div class="mb-3">
-            <label for="reason" class="form-label">Reason for joining</label>
+            <label for="reason" class="form-label">
+              Reason for joining
+            </label>
+
             <textarea
               class="form-control"
               id="reason"
               rows="3"
+              required
               v-model="formData.reason"
+              @blur="validateReason"
             ></textarea>
+
+            <div v-if="reasonError" class="text-danger">
+              {{ reasonError }}
+            </div>
           </div>
 
+          <!-- Buttons -->
           <div class="text-center">
-            <button type="submit" class="btn btn-primary me-2">
+            <button
+              type="submit"
+              class="btn btn-primary me-2"
+            >
               Submit
             </button>
 
@@ -81,42 +118,30 @@
           </div>
         </form>
 
-        <div class="row mt-5" v-if="submittedCards.length">
-          <div class="d-flex flex-wrap justify-content-start">
-            <div
-              v-for="(card, index) in submittedCards"
-              :key="index"
-              class="card m-2"
-              style="width: 18rem;"
-            >
-              <div class="card-header">
-                User Information
-              </div>
+        <!-- PrimeVue DataTable -->
+        <div class="mt-5" v-if="submittedUsers.length">
+          <h2 class="text-center mb-3">Submitted Users</h2>
 
-              <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                  Username: {{ card.username }}
-                </li>
+          <DataTable
+            :value="submittedUsers"
+            stripedRows
+            showGridlines
+            tableStyle="min-width: 50rem"
+          >
+            <Column field="username" header="Username"></Column>
 
-                <li class="list-group-item">
-                  Password: {{ card.password }}
-                </li>
+            <Column field="password" header="Password"></Column>
 
-                <li class="list-group-item">
-                  Australian Resident:
-                  {{ card.isAustralian ? 'Yes' : 'No' }}
-                </li>
+            <Column header="Australian Resident">
+              <template #body="slotProps">
+                {{ slotProps.data.isAustralian ? 'Yes' : 'No' }}
+              </template>
+            </Column>
 
-                <li class="list-group-item">
-                  Gender: {{ card.gender }}
-                </li>
+            <Column field="gender" header="Gender"></Column>
 
-                <li class="list-group-item">
-                  Reason: {{ card.reason }}
-                </li>
-              </ul>
-            </div>
-          </div>
+            <Column field="reason" header="Reason"></Column>
+          </DataTable>
         </div>
       </div>
     </div>
@@ -126,6 +151,9 @@
 <script setup>
 import { ref } from 'vue'
 
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+
 const formData = ref({
   username: '',
   password: '',
@@ -134,14 +162,70 @@ const formData = ref({
   gender: ''
 })
 
-const submittedCards = ref([])
+const submittedUsers = ref([])
 
-const submitForm = () => {
-  submittedCards.value.push({
-    ...formData.value
-  })
+const usernameError = ref('')
+const passwordError = ref('')
+const reasonError = ref('')
+
+// Username validation
+const validateUsername = () => {
+  if (formData.value.username.length < 3) {
+    usernameError.value =
+      'Username must be at least 3 characters.'
+    return false
+  }
+
+  usernameError.value = ''
+  return true
 }
 
+// Password validation
+const validatePassword = () => {
+  if (formData.value.password.length < 8) {
+    passwordError.value =
+      'Password must be at least 8 characters.'
+    return false
+  }
+
+  passwordError.value = ''
+  return true
+}
+
+// Reason validation
+const validateReason = () => {
+  if (formData.value.reason.length < 10) {
+    reasonError.value =
+      'Reason must be at least 10 characters.'
+    return false
+  }
+
+  reasonError.value = ''
+  return true
+}
+
+// Submit form
+const submitForm = () => {
+  const usernameValid = validateUsername()
+  const passwordValid = validatePassword()
+  const reasonValid = validateReason()
+
+  if (
+    !usernameValid ||
+    !passwordValid ||
+    !reasonValid
+  ) {
+    return
+  }
+
+  submittedUsers.value.push({
+    ...formData.value
+  })
+
+  clearForm()
+}
+
+// Clear form
 const clearForm = () => {
   formData.value = {
     username: '',
@@ -150,24 +234,9 @@ const clearForm = () => {
     reason: '',
     gender: ''
   }
+
+  usernameError.value = ''
+  passwordError.value = ''
+  reasonError.value = ''
 }
 </script>
-
-<style scoped>
-.card {
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-  background-color: #275FDA;
-  color: white;
-  padding: 10px;
-  border-radius: 10px 10px 0 0;
-}
-
-.list-group-item {
-  padding: 10px;
-}
-</style>
